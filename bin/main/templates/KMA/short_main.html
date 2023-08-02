@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th = "http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorator="board/layout/defaultLayout">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<title>Insert title here</title>
+</head>
+<body>
+<label>단기예보 조회</label>
+
+<form id = "KMA_short_term_frm" class="form-horizontal" name = "short_frm">
+	<div class="form-group">
+		
+		<select id="service_name" class="emptyCheck" title="예보종류선택">
+			<option id="city" value="VilageFcst">단기예보</option>
+			<option id="city" value="UltraSrtFcst">초단기예보</option>
+		</select>
+		
+		<select id="step1" name = "step1" class="emptyCheck" title="시/도">
+			<option id="city" value="">시/도</option>
+		</select>
+
+		<select id="step2" name = "step2">
+			<option id="county" value="">시/군/구</option>
+		</select>
+
+		<select id="step3" name = "step3">
+			<option id="town" value="">읍/면/동</option>
+		</select>
+
+		<span>날짜 선택: <input type="text" id="datepicker" disabled="disabled" class="emptyCheck" title="날짜"></span>
+
+		<select id="time" name = "baseTime" class="emptyCheck" title="시간">
+			<option value="" selected>시간</option>
+		</select>
+
+		<button type="button" id = "KMA_short_button" class="btn btn-primary waves-effect waves-light">
+			<span>예보 조회</span>
+		</button>
+
+		<div>
+			<table id="result_short" class="table" border = "1">
+			
+			</table>
+		</div>
+		<input type = "hidden" id = "code" name = "areacode">
+		<input type = "hidden" id = "date" name = "baseDate">
+		<input type = "hidden" name = "nx" value = "">
+		<input type = "hidden" name = "ny" value = "">
+		<input type = "hidden" id = "service" name = "service_name" value = "">
+	</div>
+</form>
+	
+</body>
+
+<script >
+
+	var short_frm = $("#KMA_short_term_frm");
+	
+	$(document).ready(function(){
+		$(function() {
+	       //input을 datepicker로 선언
+	       $("#datepicker").datepicker({
+	           dateFormat: 'yy-mm-dd' //달력 날짜 형태
+	           ,showOtherMonths: true //빈 공간에 현재월의 앞뒤월의 날짜를 표시
+	           ,showMonthAfterYear:true // 월- 년 순서가아닌 년도 - 월 순서
+	           ,changeYear: true //option값 년 선택 가능
+	           ,changeMonth: true //option값  월 선택 가능                
+	           ,showOn: "both" //button:버튼을 표시하고,버튼을 눌러야만 달력 표시 ^ both:버튼을 표시하고,버튼을 누르거나 input을 클릭하면 달력 표시  
+	           ,buttonImage: "http://jqueryui.com/resources/demos/datepicker/images/calendar.gif" //버튼 이미지 경로
+	           ,buttonImageOnly: true //버튼 이미지만 깔끔하게 보이게함
+	           ,buttonText: "선택" //버튼 호버 텍스트              
+	           ,yearSuffix: "년" //달력의 년도 부분 뒤 텍스트
+	           ,monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 텍스트
+	           ,monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 Tooltip
+	           ,dayNamesMin: ['일','월','화','수','목','금','토'] //달력의 요일 텍스트
+	           ,dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'] //달력의 요일 Tooltip
+	           ,minDate: "-1D" //최소 선택일자
+	           ,maxDate: 0 //최대 선택일자
+	       });                    
+	       
+	       //초기값을 오늘 날짜로 설정
+	       $('#datepicker').datepicker('setDate', 'today');          
+		});
+		loadArea('city');
+	});
+	
+	$('#step1').on("change", function() {
+		loadArea('county', $(this));
+	});
+
+	$('#step2').on("change", function() {
+		loadArea('town', $(this));
+	});
+	
+	//지역 선택시 옵션값 변경
+	function loadArea(type, element) {
+		var value = $(element).find('option:selected').text();
+		var data = {type : type, keyword : value};
+
+		console.log(data);
+		$.ajax({
+			url: "/KMA/short/location",
+			data: data,
+			dataType: "json",
+			method : "post",
+			success : function(res){
+				
+				const disList = new Map();
+				
+				if (type == 'city'){
+					res.forEach(function (city) {
+						if(!disList.has(city.step1)){
+							disList.set(city.step1, city.step1)
+							$('#step1').append('<option value="'+city.areacode+'">'+city.step1+'</option>')
+						}
+					});
+				}
+				else if(type == 'county'){
+					$('#county').siblings().remove();
+					$('#town').siblings().remove();
+					res.forEach(function (county) {
+						if(value == county.step1 && !disList.has(county.step2)){
+							disList.set(county.step2, county.step2)
+							$('#step2').append('<option value="'+county.areacode+'">'+county.step2+'</option>');
+						}
+					});
+					
+				}
+				else{
+					$('#town').siblings().remove();
+					res.forEach(function (town) {
+						if(value == town.step2 && !disList.has(town.step3)){
+							disList.set(town.step3, town.step3)
+							$('#step3').append('<option value="'+town.areacode+'">'+town.step3+'</option>');
+						}
+					});
+				}
+			},
+			error : function(er){
+				alert(er.responseText);
+			}
+		});
+	}
+	
+	//달력 선택시 시간선택 셀렉트 박스 값 변경
+	$('#datepicker').on("change", function(){
+		$('#time option:eq(0)').prop("selected", true);
+		var now = new Date();
+		var currentHour = now.getHours();
+		var month = (now.getMonth()+1) < 10 ? "0" + (now.getMonth()+1) : (now.getMonth()+1);
+		var nowDate = now.getDate() < 10 ? "0" + now.getDate() : now.getDate();
+		var today = now.getFullYear() + month + nowDate;
+		var datepickerValue = $(this).val().replace(/-/g, "");
+		var service = $("#service_name").val();
+		var service_hour = (service == "UltraSrtFcst") ? 0 : 2;
+		var service_pluse = (service == "UltraSrtFcst") ? 1 : 3;
+		
+		$('#time').children().remove();
+		var html = '';
+		/* 오늘 일 경우 */
+		if (datepickerValue == today){
+			if(currentHour >= 2){
+				for (var i = service_hour; i <= currentHour; i += service_pluse){
+					html += '<option value="' + (i >= 10 ? i : '0' + i ) + (service == 'UltraSrtFcst' ? '30' : '00') + '">'+ i +'시</option>';
+				}
+			}
+			else{
+				alert(datepickerValue + " 날짜의 제공 가능한 날씨 데이터가 없습니다.")
+				$(this).val('');
+			}	
+		}
+		
+		/* 어제 일 경우 */
+		else{
+			if (currentHour < 23){
+				for (var i = service_hour; i < 24; i += service_pluse){
+					if(i > currentHour){
+						html += '<option value="' + (i >= 10 ? i : '0' + i ) + (service == 'UltraSrtFcst' ? '30' : '00') + '">'+ i +'시</option>';
+					}
+				}
+			}
+			else{
+				alert(datepickerValue + " 날짜의 제공 가능한 날씨 데이터가 없습니다.")
+				$(this).val('');
+			}
+		}
+		$('#time').append(html);
+	});
+	
+	
+	$("#KMA_short_button").on("click", function(){
+		
+		var areacode = "";
+		var cityCode = $('#step1 option:selected').val();
+		var countyCode = $('#step2 option:selected').val();
+		var townCode = $('#step3 option:selected').val();
+
+		if (townCode == '' && countyCode == '') {
+			areacode = cityCode;
+		}
+		else if(townCode == '' && countyCode != '') {
+			areacode = countyCode;
+		}
+		else if(townCode != '') {
+			areacode = townCode;
+		}
+		
+		$("#code").val(areacode);
+		$("#date").val($("#datepicker").val().replace(/-/g, ""));
+		console.log($("#date").val());
+		
+		
+		var service = $("#service_name").val();
+		$("#service").val(service);
+		console.log($("#service").val());
+		var frm_values = $("form[name=short_frm]").serialize();
+		
+		
+		$.ajax({
+			type : "post",
+			url : "/KMA/short/" + service,
+			data : frm_values,
+			dataType : "json",
+			success : function(result, status, xhr){
+				console.log(result);
+				get_short(service, result.baseDate, result.baseTime, result.nx, result.ny)
+			},
+			error : function(er){
+				alert("er");
+			}
+		});
+	});
+	
+	function get_short(service, basedate, basetime, nx, ny){
+		var loca = $("#select_loca").val();
+		var time = $("#time").val();
+		$.ajax({
+			type : "get",
+			url : "/KMA/short/" + service + "?baseDate=" + basedate + "&baseTime=" + basetime + "&nx=" + nx + "&ny=" + ny,
+			dataType : "json",
+			success : function(result, status, xhr){
+				
+				console.log(result);
+				
+				var result_short = $("#result_short");
+				var str = ""
+				var keys = Object.keys(result[0]);
+				
+				console.log(keys);
+				
+				str += "<tr>";
+				for(key in result[0]){
+					str += "<th>" + key + "</th>";
+				}
+				str += "</tr>";
+				
+				result.forEach(function(res){
+					str += "<tr>";
+					for(key in res){
+						str += "<td>" + res[key] + "</td>";
+					}
+					str += "</tr>";
+				});
+				
+				result_short.html(str);
+			},
+			error : function(er){
+				alert("er");
+			}
+		});
+	}
+</script>
+
+</html>

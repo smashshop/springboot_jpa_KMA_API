@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th = "http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorator="board/layout/defaultLayout">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<title>Insert title here</title>
+</head>
+<body>
+<label>중기전망조회</label>
+
+<form id = "KMA_mid_term_frm" class="form-horizontal" name = "mid_frm">
+	<div class="form-group">
+		<span>
+			중기 예보 서비스 선택 : 
+			<select id="service" name = "service_name" class="emptyCheck">
+				<option value="getMidFcst" selected>중기전망조회</option>
+				<option value="getMidLandFcst">중기육상예보조회</option>
+				<option value="getMidTa">중기기온조회</option>
+				<option value="getMidSeaFcst">중기해상예보조회</option>
+			</select>
+		</span>
+		
+		<span id = "service_select_box">
+			조회 지점 선택 : 
+			<select id='select_loca' name = 'loca' class='emptyCheck'>
+				<option value=105>강원도</option>
+			 	<option value=108 selected>전국</option>
+			 	<option value=109>서울, 인천, 경기도</option>
+			 	<option value=131>충청북도</option>
+			 	<option value=133>대전, 세종, 충청남도</option>
+			 	<option value=146>전라북도</option>
+				<option value=156>광주, 전라남도</option>
+			 	<option value=143>대구, 경상북도</option>
+			 	<option value=159>부산, 울산, 경상남도</option>
+			 	<option value=184>제주도</option>	 
+			</select>"
+		</span>
+
+		<span>날짜 선택: <input type="text" id="datepicker" disabled="disabled" class="emptyCheck" title="날짜"></span>
+
+		<select id="time" name = "tmFc" class="emptyCheck" title="시간">
+			<option value="" selected>시간</option>
+		</select>
+
+		<button type="button" id = "KMA_mid_button" class="btn btn-primary waves-effect waves-light">
+			<span>예보 조회</span>
+		</button>
+
+		<div>
+			<table id="result_mid" class="table" border = "1">
+			
+			</table>
+		</div>
+		
+		<input id = "loca_id" type = "hidden" name = "loca_id" value = "stnId">
+	</div>
+</form>
+	
+</body>
+
+<script >
+
+	var mid_frm = $("#KMA_mid_term_frm");
+	
+	$(document).ready(function(){
+		$(function() {
+	       //input을 datepicker로 선언
+	       $("#datepicker").datepicker({
+	           dateFormat: 'yy-mm-dd' //달력 날짜 형태
+	           ,showOtherMonths: true //빈 공간에 현재월의 앞뒤월의 날짜를 표시
+	           ,showMonthAfterYear:true // 월- 년 순서가아닌 년도 - 월 순서
+	           ,changeYear: true //option값 년 선택 가능
+	           ,changeMonth: true //option값  월 선택 가능                
+	           ,showOn: "both" //button:버튼을 표시하고,버튼을 눌러야만 달력 표시 ^ both:버튼을 표시하고,버튼을 누르거나 input을 클릭하면 달력 표시  
+	           ,buttonImage: "http://jqueryui.com/resources/demos/datepicker/images/calendar.gif" //버튼 이미지 경로
+	           ,buttonImageOnly: true //버튼 이미지만 깔끔하게 보이게함
+	           ,buttonText: "선택" //버튼 호버 텍스트              
+	           ,yearSuffix: "년" //달력의 년도 부분 뒤 텍스트
+	           ,monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 텍스트
+	           ,monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 Tooltip
+	           ,dayNamesMin: ['일','월','화','수','목','금','토'] //달력의 요일 텍스트
+	           ,dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'] //달력의 요일 Tooltip
+	           ,minDate: "-1D" //최소 선택일자
+	           ,maxDate: 0 //최대 선택일자
+	       });                    
+	       
+	       //초기값을 오늘 날짜로 설정
+	       $('#datepicker').datepicker('setDate', 'today');          
+		});
+			
+	});
+	
+	//중기예보 서비스 종류 선택
+	$("#service").on("change", function(){
+		var service_value = $(this).val();
+		var str = "";
+		
+		
+		if(service_value == "getMidFcst"){
+			str += "조회 지점 선택 : " 
+				 + "<select id='select_loca' name = 'loca' class='emptyCheck' title='시/도'>"
+				 + "	<option value=105>강원도</option>"
+				 + "	<option value=108>전국</option>"
+				 + "	<option value=109>서울, 인천, 경기도</option>"
+				 + "	<option value=131>충청북도</option>"
+				 + "	<option value=133>대전, 세종, 충청남도</option>"
+				 + "	<option value=146>전라북도</option>"
+				 + "	<option value=156>광주, 전라남도</option>"
+				 + "	<option value=143>대구, 경상북도</option>"
+				 + "	<option value=159>부산, 울산, 경상남도</option>"
+				 + "	<option value=184>제주도</option>"				 
+				 + "</select>";
+			
+				 mid_frm.find("input[name=loca_id]").val("stnId");
+		}else if(service_value == "getMidLandFcst"){
+			str += "예보 지역 선택 : " 
+				 + "<select id='select_loca' name = 'loca' class='emptyCheck' title='시/도'>"
+				 + "	<option value='11B00000'>서울, 인천, 경기도</option>"
+				 + "	<option value='11D10000'>강원도영서</option>"
+				 + "	<option value='11D20000'>강원도영동</option>"
+				 + "	<option value='11C20000'>대전, 세종, 충청남도</option>"
+				 + "	<option value='11C10000'>충청북도</option>"
+				 + "	<option value='11F20000'>광주, 전라남도</option>"
+				 + "	<option value='11F10000'>전라북도</option>"
+				 + "	<option value='11H10000'>대구, 경상북도</option>"
+				 + "	<option value='11H20000'>부산, 울산, 경상남도</option>"
+				 + "	<option value='11G00000'>제주도</option>"				 
+				 + "</select>";
+			mid_frm.find("input[name=loca_id]").val("regId");
+		}else if(service_value == "getMidTa"){
+			str += "예보 지역 선택 : " 
+				 + "<select id='select_loca' name = 'loca' class='emptyCheck' title='시/도'>"
+				 + "	<option value='11B10101'>서울</option>"
+				 + "	<option value='11B20201'>인천</option>"
+				 + "	<option value='11B20601'>수원</option>"
+				 + "	<option value='11B20305'>파주</option>"
+				 + "	<option value='11D10301'>춘천</option>"
+				 + "	<option value='11D10401'>원주</option>"
+				 + "	<option value='11D20501'>강릉</option>"
+				 + "	<option value='11C20401'>대전</option>"
+				 + "	<option value='11C20101'>서산</option>"
+				 + "	<option value='11C20404'>세종</option>"
+				 + "	<option value='11C10301'>청주</option>"	
+				 + "	<option value='11G00201'>제주</option>"		
+				 + "	<option value='11G00401'>서귀포</option>"
+				 + "	<option value='11F20501'>광주</option>"
+				 + "	<option value='21F20801'>목포</option>"
+				 + "	<option value='11F20401'>여수</option>"
+				 + "	<option value='11F10201'>전주</option>"
+				 + "	<option value='21F10501'>군산</option>"
+				 + "	<option value='11H20201'>부산</option>"
+				 + "	<option value='11H20101'>울산</option>"
+				 + "	<option value='11H20301'>창원</option>"
+				 + "	<option value='11H10701'>대구</option>"
+				 + "	<option value='11H10501'>안동</option>"
+				 + "	<option value='11H10201'>포항</option>"	
+				 + "</select>";
+			mid_frm.find("input[name=loca_id]").val("regId");
+		}else{
+			str += "예보 지역 선택 : " 
+				 + "<select id='select_loca' name = 'loca' class='emptyCheck' title='시/도'>"
+				 + "	<option value='12A20000'>서해중부</option>"
+				 + "	<option value='12A30000'>서해남부</option>"
+				 + "	<option value='12A10000'>서해북부</option>"
+				 + "	<option value='12B10000'>남해서부</option>"
+				 + "	<option value='12C10000'>동해남부</option>"
+				 + "	<option value='12C30000'>동해북부</option>"
+				 + "	<option value='12B20000'>동해남부</option>"
+				 + "	<option value='12C20000'>동해중부</option>"
+				 + "	<option value='12E00000'>동중국해</option>"
+				 + "	<option value='12B10500'>제주도</option>"
+				 + "	<option value='12G00000'>연해주</option>"	
+				 + "	<option value='12D00000'>대화퇴</option>"		
+				 + "	<option value='12F00000'>규슈</option>"		
+				 + "</select>";
+			mid_frm.find("input[name=loca_id]").val("regId");
+		}
+		
+		$("#service_select_box").html(str);
+	})
+	
+	//달력 선택시 시간선택 셀렉트 박스 값 변경
+	$('#datepicker').on("change", function(){
+		$('#time option:eq(0)').prop("selected", true);
+		var now = new Date();
+		var currentHour = now.getHours();
+		var month = (now.getMonth()+1) < 10 ? "0" + (now.getMonth()+1) : (now.getMonth()+1);
+		var nowDate = now.getDate() < 10 ? "0" + now.getDate() : now.getDate();
+		var today = now.getFullYear() + month + nowDate;
+		var datepickerValue = $(this).val().replace(/-/g, "");
+
+		
+		$('#time').children().remove();
+		var html = '';
+		/* 오늘 일 경우 */
+		if (datepickerValue == today){
+			if(currentHour >= 6){
+				for (var i = 6; i <= currentHour; i += 12){
+					html += '<option value="' + datepickerValue + (i >= 10 ? i : '0' + i ) + '00">'+ i +'시</option>';
+				}
+			}
+			else{
+				alert(datepickerValue + " 날짜의 제공 가능한 날씨 데이터가 없습니다.")
+				$(this).val('');
+			}	
+		}
+		
+		/* 어제 일 경우 */
+		else{
+			if (currentHour < 6){
+				for (var i = currentHour + 1; i <= 18; i += 12){
+					html += '<option value="'+ datepickerValue + (i >= 10 ? i : '0' + i ) + '00">'+ i +'시</option>';
+				}
+			}
+			else if(currentHour < 18){
+				html += '<option value="'+ datepickerValue + 18 + '00">'+ 18 +'시</option>';
+			}
+			else{
+				alert(datepickerValue + " 날짜의 제공 가능한 날씨 데이터가 없습니다.")
+				$(this).val('');
+			}
+		}
+		$('#time').append(html);
+	});
+	
+	
+	$("#KMA_mid_button").on("click", function(){
+		var frm_values = $("form[name=mid_frm]").serialize();
+		var service = $("#service").val();
+		
+		$.ajax({
+			type : "post",
+			url : "/KMA/mid/" + service,
+			data : frm_values,
+			success : function(result, status, xhr){
+				get_mid(service)
+			},
+			error : function(er){
+				alert("er");
+			}
+		});
+	});
+	
+	function get_mid(service){
+		var loca = $("#select_loca").val();
+		var time = $("#time").val();
+		$.ajax({
+			type : "get",
+			url : "/KMA/mid/" + service + "?loca=" + loca + "&time=" + time,
+			dataType : "json",
+			success : function(result, status, xhr){
+				
+				var result_mid = $("#result_mid");
+				var str = ""
+				var keys = Object.keys(result);
+				str += "<tr>";
+				for(key in result){
+					str += "<th>" + key + "</th>";
+				}
+				str += "</tr>";
+				
+				str += "<tr>";
+				for(key in result){
+					str += "<td>" + result[key] + "</td>";
+				}
+				str += "</tr>";
+				
+				result_mid.html(str);
+			},
+			error : function(er){
+				alert("er");
+			}
+		});
+	}
+</script>
+
+</html>
